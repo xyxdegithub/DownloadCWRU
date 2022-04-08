@@ -1,7 +1,7 @@
 '''
 Author: xyx
 Date: 2022-04-06 21:19:50
-LastEditTime: 2022-04-07 21:37:50
+LastEditTime: 2022-04-08 20:14:02
 '''
 '''这个文件是处理数据'''
 
@@ -13,6 +13,7 @@ import scipy.io
 import sys
 import time
 import pandas as pd
+import numpy as np
 
 #处理下载的.mat文件
 #folderPath是含有.mat文件夹
@@ -92,7 +93,47 @@ def mat_to_df(folder_path):
     df['label'] = df['filename'].apply(label)
     return df.drop(['BA_time','FE_time', 'RPM', 'ans'], axis=1, errors='ignore')
 
+'''这个函数将信号分成若干段，每段都有一个特定的数字由段长定义的点。'''
+def divide_signal(df,length):
+    dic={}
+    index=0
+    #df.shape[0]是df的行数
+    for i in range(df.shape[0]):
+        n_sample_points=len(df.iloc[i,1])
+        n_segments=n_segments_points//length
+        for segment in range(n_segments):
+            dic[index]={
+                'signal': df.iloc[i,1][length * segment:length * (segment+1)], 
+                'label': df.iloc[i,2],
+                'filename' : df.iloc[i,0]
+            }
+            index+=1
+    df_tmp = pd.DataFrame.from_dict(dic,orient='index')
+    #把两个df 水平concat一起
+    df_output = pd.concat(
+        [df_tmp[['label', 'filename']], 
+         pd.DataFrame(np.hstack(df_tmp["signal"].values).T)
+        ], 
+        axis=1 )
+    return df_output
 
-
-
+def normalize_signal(df):
+    #求平均值和方差
+    mean = df['DE_time'].apply(np.mean)
+    std = df['DE_time'].apply(np.std)
+    #正则化
+    df['DE_time'] = (df['DE_time'] - mean) / std
  
+
+def get_df_all(data_path, segment_length=512, normalize=False):
+
+    df = mat_to_df(data_path)
+
+    if normalize:
+        normalize_signal(df)
+    df_processed = divide_signal(df, segment_length)
+
+    map_label = {'N':0, 'B':1, 'IR':2, 'OR':3}
+    #把标签替换成对应的数字
+    df_processed['label'] = df_processed['label'].map(map_label)
+    return df_processed
