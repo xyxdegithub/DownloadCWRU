@@ -1,7 +1,7 @@
 '''
 Author: xyx
 Date: 2022-04-06 21:19:50
-LastEditTime: 2022-04-08 20:14:02
+LastEditTime: 2022-04-08 20:45:18
 '''
 '''这个文件是处理数据'''
 
@@ -100,7 +100,7 @@ def divide_signal(df,length):
     #df.shape[0]是df的行数
     for i in range(df.shape[0]):
         n_sample_points=len(df.iloc[i,1])
-        n_segments=n_segments_points//length
+        n_segments=n_sample_points//length
         for segment in range(n_segments):
             dic[index]={
                 'signal': df.iloc[i,1][length * segment:length * (segment+1)], 
